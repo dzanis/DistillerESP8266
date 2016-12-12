@@ -12,7 +12,8 @@ document.write(' <input type="button" onclick="onStop()" value="Stop" id="button
 document.write('<p>Мощность:<input type="range" min="0" max="100" step="5" value="0" id="powerSlider" ');
 document.write('oninput="powerChange()"> <span id="powerVar" >0 %</span> </p>');
 document.write('<hr>Связь <span id="send"></span><hr>');
-document.write('<body onload="init()">');
+document.write('<body onload="init()">\n');
+
 
 	var url;
 	var temp;
@@ -20,8 +21,9 @@ document.write('<body onload="init()">');
 	var timerTest; 
 	var timerWorking;
 	var level = 0;
-	var dateStart;
-	var arr = ['Тен не включен','Разгон','Рабочий режим'];
+	var power = 0;
+	var dateStart = new Date();
+	var arr = ['Выключено','Разгон','Рабочий режим'];
 	var buttonStart = document.getElementById('buttonStart');
 	var buttonStop = document.getElementById('buttonStop');
 	//var audio = document.getElementById('audio');
@@ -29,16 +31,23 @@ document.write('<body onload="init()">');
         function init() {
         	
         	   url = location.toString();
-            if(url.indexOf('file') != -1)// для локального теста с компа
+            if(url.indexOf('file') != -1 || url.indexOf('localhost') != -1)// для локального теста с компа
             	url = 'http://esp8266.local/';
-            	timerId = setInterval(updateTemperature, 2000);
+
+
+
             	           	
             	// загружаю данные с сервера если они были сохранены
             	getPower();
             	getState();
-            	
-            	
-     	
+
+            // getFromServer('getPower',power);
+            // getFromServer('getState',level);
+            // var dateString = '';
+            // getFromServer('getDateStart',dateString);
+     	    // dateStart = new Date(dateString);
+
+            timerId = setInterval(updateTemperature, 2000);
         }
         
         
@@ -66,8 +75,8 @@ document.write('<body onload="init()">');
               if (xmlhttp.readyState == 4) {
                  if(xmlhttp.status == 200) {
                   var dateString = xmlhttp.responseText;
-                  dateStart = date_from_string(dateString);
-            	document.getElementById('timeStart').innerHTML = dateString;      			
+                  dateStart = new Date(dateString);
+            	document.getElementById('timeStart').innerHTML = toTimeString(dateStart);
             			onStart();//  продолжаем
                      }
               }
@@ -99,13 +108,17 @@ document.write('<body onload="init()">');
 				document.getElementById("buttonStop").disabled = false;
 
             if(level == 0){
-            dateStart = new Date();
-        		document.getElementById('timeStart').innerHTML = date_to_string(dateStart);
-        		post('setDateStart?dateVar='+ date_to_string(dateStart));
+                dateStart = new Date();
+        		document.getElementById('timeStart').innerHTML = toTimeString(dateStart);
+        		post('setDateStart?dateVar='+ dateStart.toUTCString());
         		}
         		
         		timerWorking = setInterval(function(){
-        		document.getElementById('timeWorking').innerHTML = diff_date(date_to_string(dateStart));
+                    var t = getTimeRemaining(dateStart);
+        		document.getElementById('timeWorking').innerHTML =
+                    ('0' + t.hours).slice(-2) + ':' +
+                    ('0' + t.minutes).slice(-2) + ':' +
+                    ('0' + t.seconds).slice(-2);
         		}, 1000);
             //timerTest = setTimeout(beepStart, 1000 * 10);// через 10s запишять
             setLevel(1);
@@ -114,9 +127,9 @@ document.write('<body onload="init()">');
         function onStop() {
        	  
        	   clearInterval(timerWorking);  
-				document.getElementById("buttonStart").disabled = false;
-				document.getElementById("buttonStop").disabled = true;				
-				document.getElementById('timeStart').innerHTML = '0';
+            document.getElementById("buttonStart").disabled = false;
+            document.getElementById("buttonStop").disabled = true;
+            document.getElementById('timeStart').innerHTML = '0';
          	document.getElementById('timeWorking').innerHTML = '0';
 
 				setLevel(0);	
@@ -159,10 +172,7 @@ document.write('<body onload="init()">');
             
         }
         
-        function request(action,Id){
-             
-                               
-        }
+
         
         
         function get(params){
@@ -173,6 +183,25 @@ document.write('<body onload="init()">');
 
          return xmlhttp;                   
         }
+
+
+    function getFromServer(params,object){// ответ передаётся в object
+
+        var xmlhttp	 = getXmlHttp();
+        xmlhttp.open('GET', url + params, true);
+        xmlhttp.send(null);
+
+        xmlhttp.onreadystatechange = function() {
+            if (xmlhttp.readyState == 4) {
+                if(xmlhttp.status == 200) {
+                    window[object] = xmlhttp.responseText;
+
+
+                }
+            }
+        };
+
+}
         
         function post(params){
         	
@@ -228,51 +257,28 @@ document.write('<body onload="init()">');
 	
 			}
 	
-	function date_to_string(date){ // возврашяет дату в виде такой строки '2011-11-30 15:40:50'
-		return date.getFullYear() +'-' + date.getMonth() + '-' + date.getDate() +' ' + date.getHours()+':'+date.getMinutes()+':'+date.getSeconds();	
+	function toTimeString(date){ // возврашяет время из даты в виде такой строки '15:40:50'
+
+		return  ('0' + date.getHours()).slice(-2) + ':' +
+                ('0' + date.getMinutes()).slice(-2) + ':' +
+                ('0' + date.getSeconds()).slice(-2);
 	}
 	
-	// http://www.py-my.ru/post/4ed5a7931d41c80309000000		
-	function date_from_string(dt){
-	// 2011-11-30 15:40:50
-	var df = dt.split(' ');
-	var d = df[0].split('-');
-	var t = df[1].split(':');
-	return d1 = new Date(d[0],d[1]-1,d[2],t[0],t[1],t[2]);
-}
 
-	
-			
-	function diff_date(d1){
-	var r = (new Date() - d1)/1000;
 
-	var tt = {
-			sec: ['{} секунд','{} секунда','{} секунды'],
-			min: ['{} минут','{} минута','{} минуты'],
-			hour: ['{} часов','{} час','{} часа'],
-			day: ['{} дней','{} день','{} дня']
-	}
-	function sec(x,dtt){
-		var r;
-		x = x.toFixed(0);
-		if(x>=11 && x<=14) r = null
-		else {
-			var s = '' + x;
-			if(s.length>1) s = s.substring(1);
-			r = { '1':dtt[1], '2':dtt[2], '3':dtt[2], '4':dtt[2] }[s];
-		}
-		if(!r) r = dtt[0];
-		return r.replace('{}',x)
-	}
 
-	if(r<60) return sec(r, tt.sec) + ' назад';
-	r = r / 60;
-	if(r<60) return sec(r, tt.min) + ' назад';
-	r = r / 60;
-	if(r<24) return sec(r, tt.hour) + ' назад';
-	r = r / 24;
-	if(r<1) return 'сегодня';
-	if(r<2) return 'вчера';
-	return sec(r, tt.day) + ' назад';
-}
-			
+    function getTimeRemaining(endtime){// https://myrusakov.ru/js-countdown-timer.html
+        //var t = Date.parse(endtime) - Date.parse(new Date());
+        var t = Date.parse(new Date()) - Date.parse(endtime);
+        var seconds = Math.floor( (t/1000) % 60 );
+        var minutes = Math.floor( (t/1000/60) % 60 );
+        var hours = Math.floor( (t/(1000*60*60)) % 24 );
+        var days = Math.floor( t/(1000*60*60*24) );
+        return {
+            'total': t,
+            'days': days,
+            'hours': hours,
+            'minutes': minutes,
+            'seconds': seconds
+        };
+    }
