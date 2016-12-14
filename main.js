@@ -4,13 +4,15 @@
 	
 document.write('<div id="box">');		
 document.write('<h>Дистилятор v1</h><hr>');
+
+document.write('<h1>Температура: <span id="tempVar" >0</span> C</h1><hr>');
+document.write('<span id="stateVar"></span><p>');
+
+document.write(' <input type="button" onclick="beepStop()"  value="Выключить сигнал" id="buttonBeepStop" ><p>');
+document.write(' <input type="button" onclick="onStart()" value="Start" id="buttonStart" >');
+document.write(' <input type="button" onclick="onStop()" value="Stop" id="buttonStop" ><p>');
 document.write('Время старта: <span id="timeStart" >0</span>');
 document.write(' Время работы: <span id="timeWorking">0</span><hr>');
-document.write('<h1>Температура: <span id="tempVar" >0</span> C</h1>');
-document.write('<span id="stateVar"></span><p>');
-document.write(' <input type="button" onclick="beepStop()"  value="Выключить сигнал" id="buttonBeepStop" ><hr>');
-document.write(' <input type="button" onclick="onStart()" value="Start" id="buttonStart" >');
-document.write(' <input type="button" onclick="onStop()" value="Stop" id="buttonStop" ><hr>');
 document.write('<p>Мощность:<input type="range" min="0" max="100" step="5" value="0" id="powerSlider" ');
 document.write('oninput="powerChange()"> <span id="powerVar" >0 %</span> </p>');
 document.write('<body onload="init()">\n');
@@ -25,7 +27,7 @@ document.write('</div>');
 	var state = 0;
 	var power = 0;
 	var dateStart = new Date();
-	var arr = ['Выключено','Разгон','Рабочий режим' ,'Хвосты'];
+	var arrNameState = ['Выключено','Разгон','Рабочий режим' ,'Хвосты'];
 	var buttonStart = document.getElementById('buttonStart');
 	var buttonStop = document.getElementById('buttonStop');
     var buttonBeepStop = document.getElementById('buttonBeepStop');
@@ -33,14 +35,13 @@ document.write('</div>');
         
         function init() {
 
+            document.getElementById('stateVar').innerHTML = arrNameState[state];
             buttonBeepStop.style.visibility = 'hidden';
         		
         	   url = location.toString();
             if(url.indexOf('file') != -1 || url.indexOf('localhost') != -1)// для локального теста с компа
             	url = 'http://esp8266.local/';
 
-
-                setState(0);
             	// загружаю данные с сервера если они были сохранены
             	getSettings();
 
@@ -61,18 +62,22 @@ document.write('</div>');
               if (xmlhttp.readyState == 4) {
                  if(xmlhttp.status == 200) {
                   text = xmlhttp.responseText;
-            		
-						var dateString = getVarsFromText(text)["dateVar"];
-						dateStart = new Date(dateString);
-						document.getElementById('timeStart').innerHTML = toTimeString(dateStart);
-						
-						power = getVarsFromText(text)["powerVar"];
-						document.getElementById('powerSlider').value = power;  
-            		document.getElementById('powerVar').innerHTML = power;
-            		
-            		state = getVarsFromText(text)["stateVar"];
-						if(state >= 1)  // если был рабчий режим
-            			onStart();  // //  продолжаем
+
+
+                     power = getVarsFromText(text)["powerVar"];
+                     document.getElementById('powerSlider').value = power;
+                     document.getElementById('powerVar').innerHTML = power;
+
+                        state = getVarsFromText(text)["stateVar"];
+                        if(state >= 1)  // если был рабчий режим
+                        {
+                            var dateString = getVarsFromText(text)["dateVar"];
+                            dateStart = new Date(dateString);
+                            document.getElementById('timeStart').innerHTML = toTimeString(dateStart);
+                            onStart();  // //  продолжаем
+                        }
+
+
             		
                      }
               }
@@ -113,7 +118,6 @@ document.write('</div>');
             if(state == 0){
                 dateStart = new Date();
         		document.getElementById('timeStart').innerHTML = toTimeString(dateStart);
-        		saveSettings();
         		}
         		
         		timerWorking = setInterval(function(){
@@ -136,14 +140,13 @@ document.write('</div>');
          	document.getElementById('timeWorking').innerHTML = '0';
 
 				setState(0);
-    
             
         }
         
         function setState(newstate){
             state = newstate;
-            saveSettings(); 
-            document.getElementById('stateVar').innerHTML = arr[state];
+            document.getElementById('stateVar').innerHTML = arrNameState[state];
+            saveSettings();
            
         }
         
@@ -155,9 +158,12 @@ document.write('</div>');
         function beepStart(){
 
            // button.value='Выключить сигнал';
-            clearInterval(timerBeep);
+            //clearInterval(timerBeep);
             buttonBeepStop.style.visibility = 'visible';
              timerBeep = setInterval(play , 1000);
+
+            // через 5 сек остановить сигнал
+            setTimeout(beepStop, 5000);
 
 
         }
@@ -168,9 +174,8 @@ document.write('</div>');
 
             clearInterval(timerBeep);
 
-
-
         }
+
         function updateTemperature(){
 
 
@@ -191,27 +196,26 @@ document.write('</div>');
             temp ++;
 
             if(state == 1 && temp >= 70)   {
-                setState(2);
-                beepStart();
+                beepStart();// звуковое уведомление о новом состоянии
+                setState(2);// установить новое состояние
             }
 
             if(state == 2 && temp >= 90)   {
-                setState(3);
-                beepStart();
+                beepStart();// звуковое уведомление о новом состоянии
+                setState(3);// установить новое состояние
+
             }
 
             if(state == 3 && temp >= 98)   {
-                setState(0);
-                beepStart();
-                power = 0;
-                saveSettings();
+                beepStart();// звуковое уведомление о новом состоянии
+                setState(0);// установить новое состояние
+
             }
 
             
         }
         
 
-        
         
         function get(params){
         	
@@ -302,7 +306,7 @@ document.write('</div>');
 			    return vars;
 			}
 	
-	function toTimeString(date){ // возврашяет время из даты в виде такой строки '15:40:50'
+	function toTimeString(date){ // возврашяет время из даты в виде такой строки '15:40:05'
 
 		return  ('0' + date.getHours()).slice(-2) + ':' +
                 ('0' + date.getMinutes()).slice(-2) + ':' +
