@@ -20,7 +20,7 @@ document.write('</div>');
 
 
 	var url;
-	var temp = 60;
+	var temp = 0;
 	var timerUpdate,timerBeep;
 	var timerTest; 
 	var timerWorking;
@@ -58,7 +58,6 @@ document.write('</div>');
         
         function getSettings() {
 
-            try{
         	var xmlhttp =  get('getSettings'); 
             	 xmlhttp.onreadystatechange = function() {
               if (xmlhttp.readyState == 4) {
@@ -86,8 +85,6 @@ document.write('</div>');
               
             };
 
-
-        }catch(e){alert(e);}
         }
         
         function saveSettings() {
@@ -180,22 +177,18 @@ document.write('</div>');
 
         function updateTemperature(){
 
-
-            try {
                 var xmlhttp = get('getTemp');
                 xmlhttp.onreadystatechange = function () {
                     if (xmlhttp.readyState == 4) {
                         if (xmlhttp.status == 200) {
-                            //temp = xmlhttp.responseText;
-
+                            temp = xmlhttp.responseText;
                             document.getElementById('tempVar').innerHTML = temp;
                         }
                     }
                 };
 
-            }catch(e){alert(e);}
 
-            temp ++;
+           // temp ++; // для теста
 
             if(state == 1 && temp >= 70)   {
                 beepStart();// звуковое уведомление о новом состоянии
