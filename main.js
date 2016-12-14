@@ -18,8 +18,8 @@ document.write('</div>');
 
 
 	var url;
-	var temp = 0;
-	var timerId,timerB; 
+	var temp = 60;
+	var timerUpdate,timerBeep;
 	var timerTest; 
 	var timerWorking;
 	var state = 0;
@@ -40,11 +40,11 @@ document.write('</div>');
             	url = 'http://esp8266.local/';
 
 
-            	           	
+                setState(0);
             	// загружаю данные с сервера если они были сохранены
-            	getSettings()
+            	getSettings();
 
-            timerId = setInterval(updateTemperature, 2000);
+            timerUpdate = setInterval(updateTemperature, 2000);
 
 
 
@@ -54,7 +54,8 @@ document.write('</div>');
         
         
         function getSettings() {
-        	
+
+            try{
         	var xmlhttp =  get('getSettings'); 
             	 xmlhttp.onreadystatechange = function() {
               if (xmlhttp.readyState == 4) {
@@ -77,7 +78,9 @@ document.write('</div>');
               }
               
             };
-        	
+
+
+        }catch(e){alert(e);}
         }
         
         function saveSettings() {
@@ -152,8 +155,9 @@ document.write('</div>');
         function beepStart(){
 
            // button.value='Выключить сигнал';
+            clearInterval(timerBeep);
             buttonBeepStop.style.visibility = 'visible';
-             timerB = setInterval(play , 500);
+             timerBeep = setInterval(play , 1000);
 
 
         }
@@ -162,25 +166,29 @@ document.write('</div>');
 
             buttonBeepStop.style.visibility = 'hidden';
 
-            clearInterval(timerB);
+            clearInterval(timerBeep);
 
 
 
         }
         function updateTemperature(){
-           
 
-            var xmlhttp =  get('getTemp');            
-            xmlhttp.onreadystatechange = function() {
-              if (xmlhttp.readyState == 4) {
-                 if(xmlhttp.status == 200) {
-                     //temp = xmlhttp.responseText;
-                     temp += 1;
-                     document.getElementById('tempVar').innerHTML = temp;
-                     }
-              }
-            };
 
+            try {
+                var xmlhttp = get('getTemp');
+                xmlhttp.onreadystatechange = function () {
+                    if (xmlhttp.readyState == 4) {
+                        if (xmlhttp.status == 200) {
+                            //temp = xmlhttp.responseText;
+
+                            document.getElementById('tempVar').innerHTML = temp;
+                        }
+                    }
+                };
+
+            }catch(e){alert(e);}
+
+            temp ++;
 
             if(state == 1 && temp >= 70)   {
                 setState(2);
@@ -191,6 +199,14 @@ document.write('</div>');
                 setState(3);
                 beepStart();
             }
+
+            if(state == 3 && temp >= 98)   {
+                setState(0);
+                beepStart();
+                power = 0;
+                saveSettings();
+            }
+
             
         }
         
