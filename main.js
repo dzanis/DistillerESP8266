@@ -1,7 +1,8 @@
 /*
  * 
  */
-				
+	
+document.write('<div id="box">');		
 document.write('<h1>Дистилятор v1</h1><hr>');
 document.write('Время старта: <span id="timeStart" >0</span>');
 document.write(' Время работы: <span id="timeWorking">0</span><hr>');
@@ -13,6 +14,7 @@ document.write('<p>Мощность:<input type="range" min="0" max="100" step="
 document.write('oninput="powerChange()"> <span id="powerVar" >0 %</span> </p>');
 document.write('<hr>Связь <span id="send"></span><hr>');
 document.write('<body onload="init()">\n');
+document.write('</div>');	
 
 
 	var url;
