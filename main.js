@@ -3,35 +3,37 @@
  */
 	
 document.write('<div id="box">');		
-document.write('<h1>Дистилятор v1</h1><hr>');
+document.write('<h>Дистилятор v1</h><hr>');
 document.write('Время старта: <span id="timeStart" >0</span>');
 document.write(' Время работы: <span id="timeWorking">0</span><hr>');
 document.write('<h1>Температура: <span id="tempVar" >0</span> C</h1>');
-document.write('<span id="stateVar"></span><hr>');
+document.write('<span id="stateVar"></span><p>');
+document.write(' <input type="button" onclick="beepStop()"  value="Выключить сигнал" id="buttonBeepStop" ><hr>');
 document.write(' <input type="button" onclick="onStart()" value="Start" id="buttonStart" >');
 document.write(' <input type="button" onclick="onStop()" value="Stop" id="buttonStop" ><hr>');
 document.write('<p>Мощность:<input type="range" min="0" max="100" step="5" value="0" id="powerSlider" ');
 document.write('oninput="powerChange()"> <span id="powerVar" >0 %</span> </p>');
-document.write('<hr>Связь <span id="send"></span><hr>');
 document.write('<body onload="init()">\n');
 document.write('</div>');	
 
 
 	var url;
-	var temp;
+	var temp = 0;
 	var timerId,timerB; 
 	var timerTest; 
 	var timerWorking;
-	var level = 0;
+	var state = 0;
 	var power = 0;
 	var dateStart = new Date();
-	var arr = ['Выключено','Разгон','Рабочий режим'];
+	var arr = ['Выключено','Разгон','Рабочий режим' ,'Хвосты'];
 	var buttonStart = document.getElementById('buttonStart');
 	var buttonStop = document.getElementById('buttonStop');
+    var buttonBeepStop = document.getElementById('buttonBeepStop');
 	//var audio = document.getElementById('audio');
         
         function init() {
-   	
+
+            buttonBeepStop.style.visibility = 'hidden';
         		
         	   url = location.toString();
             if(url.indexOf('file') != -1 || url.indexOf('localhost') != -1)// для локального теста с компа
@@ -43,7 +45,10 @@ document.write('</div>');
             	getSettings()
 
             timerId = setInterval(updateTemperature, 2000);
-            
+
+
+
+
             
         }
         
@@ -64,8 +69,8 @@ document.write('</div>');
 						document.getElementById('powerSlider').value = power;  
             		document.getElementById('powerVar').innerHTML = power;
             		
-            		level = getVarsFromText(text)["stateVar"];
-						if(level >= 1)  // если был рабчий режим        		
+            		state = getVarsFromText(text)["stateVar"];
+						if(state >= 1)  // если был рабчий режим
             			onStart();  // //  продолжаем
             		
                      }
@@ -78,7 +83,7 @@ document.write('</div>');
         function saveSettings() {
         		
         		var params = 'saveSettings?' +
-        		'stateVar=' + level +
+        		'stateVar=' + state +
         		'&dateVar=' + dateStart.toUTCString() +
         		'&powerVar='+ power;
         		
@@ -98,10 +103,11 @@ document.write('</div>');
         function onStart() {
        
             play();
+
             document.getElementById("buttonStart").disabled = true;
 				document.getElementById("buttonStop").disabled = false;
 
-            if(level == 0){
+            if(state == 0){
                 dateStart = new Date();
         		document.getElementById('timeStart').innerHTML = toTimeString(dateStart);
         		saveSettings();
@@ -114,8 +120,8 @@ document.write('</div>');
                     ('0' + t.minutes).slice(-2) + ':' +
                     ('0' + t.seconds).slice(-2);
         		}, 1000);
-            //timerTest = setTimeout(beepStart, 1000 * 10);// через 10s запишять
-            setLevel(1);
+            //timerTest = setTimeout(beepStart, 1000 * 10);// через 10s
+            setState(1);
         }
         
         function onStop() {
@@ -126,15 +132,15 @@ document.write('</div>');
             document.getElementById('timeStart').innerHTML = '0';
          	document.getElementById('timeWorking').innerHTML = '0';
 
-				setLevel(0);	
+				setState(0);
     
             
         }
         
-        function setLevel(l){
-            level = l;
+        function setState(newstate){
+            state = newstate;
             saveSettings(); 
-            document.getElementById('stateVar').innerHTML = arr[level];
+            document.getElementById('stateVar').innerHTML = arr[state];
            
         }
         
@@ -144,28 +150,45 @@ document.write('</div>');
            }
 
         function beepStart(){
-            button.value='Выключить сигнал';
-            button.style.visibility = 'visible';
-            timerB = setInterval(play , 500);
-            clearInterval(timerB);
+
+           // button.value='Выключить сигнал';
+            buttonBeepStop.style.visibility = 'visible';
+             timerB = setInterval(play , 500);
+
+
         }
-        
+
+        function beepStop(){
+
+            buttonBeepStop.style.visibility = 'hidden';
+
+            clearInterval(timerB);
+
+
+
+        }
         function updateTemperature(){
            
-           var temp = 0;
-     
+
             var xmlhttp =  get('getTemp');            
             xmlhttp.onreadystatechange = function() {
               if (xmlhttp.readyState == 4) {
                  if(xmlhttp.status == 200) {
-                  temp = xmlhttp.responseText;
-                  document.getElementById('tempVar').innerHTML = temp;
+                     //temp = xmlhttp.responseText;
+                     temp += 1;
+                     document.getElementById('tempVar').innerHTML = temp;
                      }
               }
             };
 
-            if(level == 1 && temp > 70)   {   
-                setLevel(2);
+
+            if(state == 1 && temp >= 70)   {
+                setState(2);
+                beepStart();
+            }
+
+            if(state == 2 && temp >= 90)   {
+                setState(3);
                 beepStart();
             }
             
