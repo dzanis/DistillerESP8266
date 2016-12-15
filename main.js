@@ -47,10 +47,8 @@ document.write('</div>');
             	// загружаю данные с сервера если они были сохранены
             	getSettings();
 
-            timerUpdate = setInterval(updateTemperature, 2000);
 
-
-
+           
 
             
         }
@@ -70,14 +68,17 @@ document.write('</div>');
                      document.getElementById('powerVar').innerHTML = power;
 
                         state = getVarsFromText(text)["stateVar"];
+                        
                         if(state >= 1)  // если был рабчий режим
                         {
                             var dateString = getVarsFromText(text)["dateVar"];
                             dateStart = new Date(dateString);
                             document.getElementById('timeStart').innerHTML = toTimeString(dateStart);
                             onStart();  // //  продолжаем
+                            
                         }
-
+                        
+								timerUpdate = setInterval(updateTemperature, 2000);
 
             		
                      }
@@ -181,7 +182,9 @@ document.write('</div>');
                 xmlhttp.onreadystatechange = function () {
                     if (xmlhttp.readyState == 4) {
                         if (xmlhttp.status == 200) {
-                            temp = xmlhttp.responseText;
+                            var t = xmlhttp.responseText;
+                            if(t != -127.0)// пропуск ошибки
+                            	temp = t;
                             document.getElementById('tempVar').innerHTML = temp;
                         }
                     }
